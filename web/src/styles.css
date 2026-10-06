@@ -289,8 +289,15 @@ thead .person {
   width: 5rem;
 }
 
-.hours-form .field-error {
+.hours-form .field-error,
+.hours-form .field-hint {
   flex-basis: 100%;
+}
+
+.field-hint {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: normal;
 }
 
 .save-error {

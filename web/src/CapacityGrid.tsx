@@ -121,7 +121,8 @@ function WeekHeader({ week, current }: { week: string; current: boolean }) {
 type RowProps = {
   person: PersonCapacity
   edit: PendingEdit | undefined
-  onSave: (id: number, weeklyHours: number) => void
+  /** `expected` is the saved value the manager is changing from. */
+  onSave: (id: number, weeklyHours: number, expected: number) => void
   onDismiss: (id: number) => void
 }
 
@@ -141,12 +142,12 @@ const PersonRow = memo(function PersonRow({ person, edit, onSave, onDismiss }: R
         <WeeklyHoursEditor
           name={person.name}
           weeklyHours={weeklyHours}
-          // After a failed save, reopen on what the manager typed rather than making them retype it.
-          initialDraft={edit?.status === 'failed' ? edit.weeklyHours : weeklyHours}
+          // After a save that didn't land, reopen on what the manager typed rather than making them retype it.
+          initialDraft={edit && !saving ? edit.weeklyHours : weeklyHours}
           saving={saving}
           onSave={(hours) => {
             if (hours === person.weeklyHours) onDismiss(person.id)
-            else onSave(person.id, hours)
+            else onSave(person.id, hours, person.weeklyHours)
           }}
         />
         {over > 0 && (
@@ -161,12 +162,27 @@ const PersonRow = memo(function PersonRow({ person, edit, onSave, onDismiss }: R
               h/week.
             </p>
             {edit.retryable && (
-              <button type="button" onClick={() => onSave(person.id, edit.weeklyHours)}>
+              <button type="button" onClick={() => onSave(person.id, edit.weeklyHours, person.weeklyHours)}>
                 Retry
               </button>
             )}
             <button type="button" onClick={() => onDismiss(person.id)}>
               Dismiss
+            </button>
+          </div>
+        )}
+        {edit?.status === 'conflict' && (
+          // By now the row shows the other manager's value; overwriting it has to be a choice, not a default.
+          <div className="save-error" role="alert">
+            <p>
+              Someone else changed this to {formatHours(person.weeklyHours)} h/week while you were editing, so your{' '}
+              {formatHours(edit.weeklyHours)} was not saved.
+            </p>
+            <button type="button" onClick={() => onSave(person.id, edit.weeklyHours, person.weeklyHours)}>
+              Save {formatHours(edit.weeklyHours)} anyway
+            </button>
+            <button type="button" onClick={() => onDismiss(person.id)}>
+              Keep {formatHours(person.weeklyHours)}
             </button>
           </div>
         )}
@@ -279,10 +295,14 @@ function WeeklyHoursEditor({ name, weeklyHours, initialDraft, saving, onSave }: 
       <button type="button" onClick={close}>
         Cancel
       </button>
-      {problem && (
+      {problem ? (
         <span className="field-error" id={errorId}>
           {problem}
         </span>
+      ) : (
+        // There is one weekly-hours value per person, with no start date. Say so, rather
+        // than let a manager discover that last quarter's numbers moved too.
+        <span className="field-hint">Applies to every week, past ones included.</span>
       )}
     </form>
   )
