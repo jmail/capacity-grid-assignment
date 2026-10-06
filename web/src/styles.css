@@ -1,6 +1,14 @@
 :root {
   color-scheme: light dark;
   font-family: ui-sans-serif, system-ui, sans-serif;
+
+  --border: color-mix(in srgb, currentColor 20%, transparent);
+  --muted: color-mix(in srgb, currentColor 62%, transparent);
+  --accent: light-dark(#4b2fb3, #b9a5ff);
+  --over-bg: light-dark(#fde3e1, #5a1f1b);
+  --over-fg: light-dark(#9c1409, #ffb9b1);
+  --full-bg: light-dark(#fff2d1, #473a12);
+  --danger: light-dark(#9c1409, #ffb9b1);
 }
 
 body {
@@ -10,23 +18,336 @@ body {
 
 h1 {
   font-size: 1.4rem;
-  margin: 0 0 0.25rem;
+  margin: 0 0 1rem;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
 }
 
 .range {
-  margin: 0 0 1.5rem;
-  opacity: 0.6;
+  margin: 0;
+  color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 
+/* Range controls */
+
+.range-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.range-stepper {
+  display: flex;
+  align-items: end;
+  gap: 0.5rem;
+}
+
+/* Set apart from the steppers: it replaces the range instead of moving it. */
+.this-week {
+  margin-left: 1rem;
+}
+
+.range-controls label {
+  display: grid;
+  gap: 0.15rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.range-controls .range,
+.range-controls .field-error {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+/* Toolbar and messages */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.toolbar p {
+  margin: 0;
+}
+
+.filter {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.status {
+  min-height: 1.2em;
+  color: var(--muted);
+}
+
+.notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin: 0 0 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+}
+
+.notice p {
+  margin: 0;
+}
+
+.notice-error {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.field-error {
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+/* Grid */
+
+.grid-scroll {
+  /* Hug the table when the range is narrow, scroll when it is wide. */
+  width: fit-content;
+  max-width: 100%;
+  max-height: calc(100vh - 15rem);
+  min-height: 12rem;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+}
+
+/* The previous range stays visible while the next one loads, but must not look current. */
+.is-stale {
+  opacity: 0.5;
+}
+
 table {
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-variant-numeric: tabular-nums;
 }
 
 th,
 td {
-  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   padding: 0.5rem 0.75rem;
   text-align: left;
+  vertical-align: top;
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: Canvas;
+}
+
+.person {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  /* A fixed width, so a save error opening in one row can't shift every column. */
+  width: 18rem;
+  min-width: 18rem;
+  max-width: 18rem;
+  box-sizing: border-box;
+  background: Canvas;
+  font-weight: normal;
+}
+
+thead .person {
+  z-index: 3;
+  font-weight: 600;
+}
+
+.week {
+  min-width: 7rem;
+  white-space: nowrap;
+}
+
+.week-dates,
+.week-number {
+  display: block;
+}
+
+.week-number {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: normal;
+}
+
+.week.is-current {
+  box-shadow: inset 0 -3px 0 var(--accent);
+}
+
+.person-name {
+  display: block;
+  font-weight: 600;
+  /* Right-to-left names keep their own reading direction but line up with the rest of the column. */
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.over-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0 0.4rem;
+  border-radius: 0.25rem;
+  background: var(--over-bg);
+  color: var(--over-fg);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* Cells */
+
+.cell-hours,
+.cell-note {
+  display: block;
+}
+
+.cell-hours {
+  font-weight: 600;
+}
+
+.cell-note {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.cell-over {
+  background: var(--over-bg);
+  color: var(--over-fg);
+  box-shadow: inset 3px 0 0 var(--over-fg);
+}
+
+.cell-over .cell-note {
+  color: inherit;
+  font-weight: 600;
+}
+
+.cell-full {
+  background: var(--full-bg);
+}
+
+.cell-empty .cell-hours {
+  color: var(--muted);
+  font-weight: normal;
+}
+
+/* Editing weekly hours */
+
+.hours-button {
+  padding: 0.1rem 0.4rem;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  background: none;
+  color: inherit;
+}
+
+.hours-button:hover,
+.hours-button:focus-visible {
+  border-color: var(--border);
+}
+
+.hours-button[aria-disabled='true'] {
+  cursor: progress;
+}
+
+.hours-hint {
+  margin-left: 0.4rem;
+  color: var(--accent);
+  font-size: 0.8rem;
+}
+
+.hours-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.hours-form input {
+  width: 5rem;
+}
+
+.hours-form .field-error,
+.hours-form .field-hint {
+  flex-basis: 100%;
+}
+
+.field-hint {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: normal;
+}
+
+.save-error {
+  margin-top: 0.35rem;
+  padding: 0.35rem 0.5rem;
+  border-left: 3px solid var(--danger);
+  color: var(--danger);
+  font-size: 0.85rem;
+  white-space: normal;
+}
+
+.save-error p {
+  margin: 0 0 0.25rem;
+}
+
+.save-error button {
+  margin-right: 0.25rem;
+}
+
+/* Loading skeleton */
+
+.bone {
+  display: block;
+  width: 3.5rem;
+  height: 2.2rem;
+  border-radius: 0.25rem;
+  background: var(--border);
+  animation: pulse 1.2s ease-in-out infinite alternate;
+}
+
+.bone-wide {
+  width: 11rem;
+}
+
+.grid-scroll > .status {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+}
+
+@keyframes pulse {
+  from {
+    opacity: 0.4;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bone {
+    animation: none;
+  }
 }
