@@ -120,9 +120,25 @@ left unfinished. Append as you go; a line or two per entry is right.
   data cannot tell the two apart. What settles it is a working pattern per person, or a weekend flag on the
   assignment, and a question to whoever owns the planning data.
 
+## From a review of the two queries
+
+- The "176ms starting `generate_series`" left uninvestigated above was JIT compilation. `generate_series` over
+  dates with an interval is planned as 1,000 rows, the plan's cost crosses `jit_above_cost`, and every request
+  paid for compiling it. Building the weeks from an integer series is estimated exactly. Measured on the
+  starter range in the database: 157ms before, 3.5ms after. Same rows; the seed tests pin them.
+- `PATCH /api/people/99999999999` answered 500: the id parsed as a Go int but did not fit the int4 column. It
+  is now parsed as 32 bits and rejected as a bad id, with a test that failed first.
+- Known and left: the conditional update compares through `::float8::numeric`, which is exact for the quarter
+  hours this API writes and for the seed, but a value with more than 15 significant digits written by
+  something else would never match and every save would conflict.
+- Known and left: the `(start_date, end_date)` index bounds the scan on one side only, so each week reads the
+  index from the start of history. 0.2ms per week on the seed; it grows with history. A range index fixes it.
+- The same review argued for going back to Monday–Friday (daily totals never exceed 8h; the commonest weekly
+  total with weekends is 56h). Kept weekends: that is the decision recorded above, and its cost is stated there.
+
 ## Verified
 
-- Go tests against the seeded database inside the api container: `docker compose exec api go test ./...` (9).
+- Go tests against the seeded database inside the api container: `docker compose exec api go test ./...` (9, one case added).
 - `docker compose exec web npm test` (32), and `npm run tsc`.
 - Walked through in Chromium with screenshots: starter range, over-allocated filter, editing, saving, a save
   whose request was aborted, next week, 26 weeks (0.8s from changing the date to the last column on screen),
