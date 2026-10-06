@@ -154,3 +154,22 @@ left unfinished. Append as you go; a line or two per entry is right.
 - What a cell is made of: no breakdown by project.
 - Live updates between managers. A conflicting save is caught (see above), but only at the moment of saving.
 - Not tested with a screen reader. No arrow-key navigation between cells. No end-to-end test in the repo.
+
+## Found by a last review pass, not fixed
+
+Read from the code in the final minutes. None was checked against the running app and none is fixed.
+
+- A save whose reply is lost is shown as failed and the cache is left alone, though the server may have applied
+  it. Retry sorts it out (the 409 reports the value we sent), but Dismiss leaves the grid showing the old value.
+- With the editor reopened on a failed or conflicting save, Retry and the form's Save can both be sent for the
+  same person at once.
+- Typing a date by keyboard: every valid intermediate value commits the range and the field is rewritten with
+  the aligned date, which gets in the way of typing the day.
+- The 26-week check builds the whole list of weeks before rejecting, so an absurd range does needless work.
+- The query comment says the join guarantees at least one day. Not for a row with `end_date < start_date`: it
+  would contribute a negative number. The seed has no such row.
+- A cancelled request gets no body written, so net/http reports it as an empty 200 to anything still listening.
+- A 2xx reply that is not JSON surfaces as a generic error instead of going through the retry policy.
+- Patching the cache after a save also resets its age, so cached ranges stay "fresh" 30s longer than they are.
+- The value-as-precondition check cannot see 40 → 32 → 40. Postgres's `xmin` would work as a version token
+  without changing the schema.
