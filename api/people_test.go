@@ -28,11 +28,16 @@ func patchPerson(t *testing.T, s *server, id, body string) (int, personResponse)
 func TestUpdatePersonChangesCapacity(t *testing.T) {
 	s := newTestServer(t)
 
-	// Dee Okafor: 45h allocated in the week of 2026-01-05 against 40h.
+	// Dee Okafor. Put back whatever was there, which is not necessarily the seed
+	// value once someone has used the app.
 	const deeID = "4"
+	var before float64
+	if err := s.db.QueryRow(context.Background(), `SELECT weekly_hours::float8 FROM people WHERE id = 4`).Scan(&before); err != nil {
+		t.Fatalf("read current value: %v", err)
+	}
 	t.Cleanup(func() {
-		if _, err := s.db.Exec(context.Background(), `UPDATE people SET weekly_hours = 40 WHERE id = 4`); err != nil {
-			t.Errorf("restore seed value: %v", err)
+		if _, err := s.db.Exec(context.Background(), `UPDATE people SET weekly_hours = $1::float8::numeric WHERE id = 4`, before); err != nil {
+			t.Errorf("restore previous value: %v", err)
 		}
 	})
 
@@ -52,6 +57,27 @@ func TestUpdatePersonChangesCapacity(t *testing.T) {
 	}
 }
 
+func TestValidateWeeklyHours(t *testing.T) {
+	hours := func(h float64) *float64 { return &h }
+
+	for _, ok := range []float64{0, 20, 37.5, 38.25, 38.75, 168} {
+		if err := validateWeeklyHours(hours(ok)); err != nil {
+			t.Errorf("%v rejected: %v", ok, err)
+		}
+	}
+
+	// Anything finer than a quarter of an hour is refused, not rounded: a manager
+	// who types 41.12566476 should be told, rather than find 41.13 saved.
+	for _, bad := range []float64{-0.25, 168.25, 41.12566476, 41.1, 0.01} {
+		if err := validateWeeklyHours(hours(bad)); err == nil {
+			t.Errorf("%v accepted", bad)
+		}
+	}
+	if err := validateWeeklyHours(nil); err == nil {
+		t.Error("missing value accepted")
+	}
+}
+
 func TestUpdatePersonRejectsBadInput(t *testing.T) {
 	s := newTestServer(t)
 
@@ -65,6 +91,7 @@ func TestUpdatePersonRejectsBadInput(t *testing.T) {
 		{"non-numeric id", "abc", `{"weeklyHours": 40}`, http.StatusBadRequest},
 		{"negative hours", "4", `{"weeklyHours": -1}`, http.StatusBadRequest},
 		{"more hours than a week has", "4", `{"weeklyHours": 169}`, http.StatusBadRequest},
+		{"finer than a quarter hour", "4", `{"weeklyHours": 41.12566476}`, http.StatusBadRequest},
 		{"missing field would otherwise save 0", "4", `{}`, http.StatusBadRequest},
 		{"null", "4", `{"weeklyHours": null}`, http.StatusBadRequest},
 		{"wrong type", "4", `{"weeklyHours": "forty"}`, http.StatusBadRequest},

@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -108,26 +110,24 @@ func TestCapacityAgainstSeed(t *testing.T) {
 		byName[p.Name] = p
 	}
 
+	// Only allocations are pinned. Weekly hours can be changed through the app, so
+	// asserting the seed's values here would fail as soon as someone used it.
 	tests := []struct {
-		name        string
-		weeklyHours float64
-		allocated   []float64
-		why         string
+		name      string
+		allocated []float64
+		why       string
 	}{
-		{"Ana Ferreira", 40, []float64{40, 0, 30}, "Mon-Sun at 8h/day is 40h, not 56h: weekends are not working days"},
-		{"Bo Lindqvist", 40, []float64{0, 32, 8}, "a Fri-Mon assignment is split across two weeks and skips the weekend"},
-		{"Cem Aydin", 20, []float64{0, 4, 12}, "single-day and part-week assignments"},
-		{"Dee Okafor", 40, []float64{0, 45, 40}, "overlapping projects add up; 40 of 40 is full, not over"},
-		{"Eli Nakamura", 0, []float64{0, 20, 0}, "zero capacity still reports the allocation"},
+		{"Ana Ferreira", []float64{40, 0, 30}, "Mon-Sun at 8h/day is 40h, not 56h: weekends are not working days"},
+		{"Bo Lindqvist", []float64{0, 32, 8}, "a Fri-Mon assignment is split across two weeks and skips the weekend"},
+		{"Cem Aydin", []float64{0, 4, 12}, "single-day and part-week assignments"},
+		{"Dee Okafor", []float64{0, 45, 40}, "overlapping projects add up"},
+		{"Eli Nakamura", []float64{0, 20, 0}, "someone with no capacity still has their allocation reported"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, ok := byName[tt.name]
 			if !ok {
 				t.Fatalf("%s missing from response", tt.name)
-			}
-			if got.WeeklyHours != tt.weeklyHours {
-				t.Errorf("weeklyHours = %v, want %v", got.WeeklyHours, tt.weeklyHours)
 			}
 			if !reflect.DeepEqual(got.Allocated, tt.allocated) {
 				t.Errorf("allocated = %v, want %v (%s)", got.Allocated, tt.allocated, tt.why)
@@ -149,6 +149,25 @@ func TestCapacityOrdersNamesAlphabetically(t *testing.T) {
 	// after every "Ingrid" because é sorts after g.
 	if row["Inés Álvarez"] > row["Ingrid Hagen"] {
 		t.Errorf("Inés Álvarez is on row %d, after Ingrid Hagen on row %d", row["Inés Álvarez"], row["Ingrid Hagen"])
+	}
+}
+
+func TestCapacityAbandonedRequestIsNotAServerError(t *testing.T) {
+	s := newTestServer(t)
+
+	var logged bytes.Buffer
+	log.SetOutput(&logged)
+	t.Cleanup(func() { log.SetOutput(os.Stderr) })
+
+	// The manager moved to another range before this one answered.
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	req := httptest.NewRequest(http.MethodGet, "/api/capacity?from=2026-01-05&to=2026-01-11", nil).WithContext(ctx)
+	rec := httptest.NewRecorder()
+	s.handleCapacity(rec, req)
+
+	if rec.Code == http.StatusInternalServerError || logged.Len() > 0 {
+		t.Errorf("status %d, logged %q; an abandoned request should be dropped quietly", rec.Code, logged.String())
 	}
 }
 
