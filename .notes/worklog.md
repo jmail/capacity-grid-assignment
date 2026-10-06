@@ -66,9 +66,21 @@ left unfinished. Append as you go; a line or two per entry is right.
   it showed the problem: nothing said that two of them move the range and one replaces it. The week steppers
   now sit on either side of the dates they move and keep the span; "This week" stands apart.
 
+- Asked whether changing the range runs more queries than it needs to, and measured instead of guessing. A
+  request the manager has left is aborted in the browser, and that reaches Postgres: after dropping a 26-week
+  request at 20ms nothing was left running. But the API logged every one as `capacity rows: context canceled`
+  and tried to answer 500. Cancelled requests are now dropped quietly, with a test that failed first.
+- No debounce on range changes, on purpose: it would delay every single step, and superseded requests are
+  cancelled anyway. What is still redundant: a one-week step refetches the whole window, and changing From and
+  then To loads the range in between.
+
+- A Go test pinned the seed's `weekly_hours` and failed once Ana had been edited to 41.12 through the app. The
+  test was wrong, not the app: it asserted a number the product lets managers change. It now pins allocations
+  only, and the PATCH test restores whatever value it found rather than assuming the seed's.
+
 ## Verified
 
-- Go tests against the seeded database inside the api container: `docker compose exec api go test ./...` (6).
+- Go tests against the seeded database inside the api container: `docker compose exec api go test ./...` (7).
 - `docker compose exec web npm test` (28), and `npm run tsc`.
 - Walked through in Chromium with screenshots: starter range, over-allocated filter, editing, saving, a save
   whose request was aborted, next week, 26 weeks (0.8s from changing the date to the last column on screen),
