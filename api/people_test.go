@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -41,7 +42,7 @@ func TestUpdatePersonChangesCapacity(t *testing.T) {
 		}
 	})
 
-	status, person := patchPerson(t, s, deeID, `{"weeklyHours": 37.5}`)
+	status, person := patchPerson(t, s, deeID, fmt.Sprintf(`{"weeklyHours": 37.5, "expectedWeeklyHours": %v}`, before))
 	if status != http.StatusOK {
 		t.Fatalf("status = %d, want 200", status)
 	}
@@ -54,6 +55,43 @@ func TestUpdatePersonChangesCapacity(t *testing.T) {
 		if p.ID == 4 && p.WeeklyHours != 37.5 {
 			t.Errorf("capacity endpoint still reports %v after the update", p.WeeklyHours)
 		}
+	}
+}
+
+// Two managers have the grid open. The first saves; the second, still looking at
+// the old number, saves too. The second save must not go through silently.
+func TestUpdatePersonRefusesAnEditMadeFromAStaleValue(t *testing.T) {
+	s := newTestServer(t)
+
+	var stored float64
+	if err := s.db.QueryRow(context.Background(), `SELECT weekly_hours::float8 FROM people WHERE id = 4`).Scan(&stored); err != nil {
+		t.Fatalf("read current value: %v", err)
+	}
+
+	// The second manager believes the value is something it no longer is.
+	body := fmt.Sprintf(`{"weeklyHours": 20, "expectedWeeklyHours": %v}`, stored+1)
+	req := httptest.NewRequest(http.MethodPatch, "/api/people/4", strings.NewReader(body))
+	req.SetPathValue("id", "4")
+	rec := httptest.NewRecorder()
+	s.handleUpdatePerson(rec, req)
+
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("status = %d, want 409", rec.Code)
+	}
+	var conflict conflictResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &conflict); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if conflict.Current.ID != 4 || conflict.Current.WeeklyHours != stored {
+		t.Errorf("current = %+v, want the stored value %v so the grid can show it", conflict.Current, stored)
+	}
+
+	var after float64
+	if err := s.db.QueryRow(context.Background(), `SELECT weekly_hours::float8 FROM people WHERE id = 4`).Scan(&after); err != nil {
+		t.Fatalf("read value after: %v", err)
+	}
+	if after != stored {
+		t.Errorf("stored value changed from %v to %v despite the conflict", stored, after)
 	}
 }
 
@@ -87,7 +125,8 @@ func TestUpdatePersonRejectsBadInput(t *testing.T) {
 		body   string
 		status int
 	}{
-		{"unknown person", "999999", `{"weeklyHours": 40}`, http.StatusNotFound},
+		{"unknown person", "999999", `{"weeklyHours": 40, "expectedWeeklyHours": 40}`, http.StatusNotFound},
+		{"no expected value, so the edit could overwrite blindly", "4", `{"weeklyHours": 40}`, http.StatusBadRequest},
 		{"non-numeric id", "abc", `{"weeklyHours": 40}`, http.StatusBadRequest},
 		{"negative hours", "4", `{"weeklyHours": -1}`, http.StatusBadRequest},
 		{"more hours than a week has", "4", `{"weeklyHours": 169}`, http.StatusBadRequest},
@@ -95,7 +134,7 @@ func TestUpdatePersonRejectsBadInput(t *testing.T) {
 		{"missing field would otherwise save 0", "4", `{}`, http.StatusBadRequest},
 		{"null", "4", `{"weeklyHours": null}`, http.StatusBadRequest},
 		{"wrong type", "4", `{"weeklyHours": "forty"}`, http.StatusBadRequest},
-		{"unknown field", "4", `{"weeklyHours": 40, "name": "x"}`, http.StatusBadRequest},
+		{"unknown field", "4", `{"weeklyHours": 40, "expectedWeeklyHours": 40, "name": "x"}`, http.StatusBadRequest},
 		{"not JSON", "4", `weeklyHours=40`, http.StatusBadRequest},
 	}
 	for _, tt := range tests {
