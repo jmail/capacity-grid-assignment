@@ -1,6 +1,6 @@
 import { memo, useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import type { PersonCapacity } from './api'
-import { cellStatus, formatHours, MAX_WEEKLY_HOURS, overWeeks, weeklyHoursError } from './capacity'
+import { cellStatus, formatHours, MAX_WEEKLY_HOURS, overWeeks, WEEKLY_HOURS_STEP, weeklyHoursError } from './capacity'
 import { addDays, formatDay, formatDayWithYear, isoWeek, startOfWeek, today, weekCount } from './dates'
 import { useCapacity, useWeeklyHoursEdits, type PendingEdit } from './useCapacity'
 
@@ -264,7 +264,7 @@ function WeeklyHoursEditor({ name, weeklyHours, initialDraft, saving, onSave }: 
         inputMode="decimal"
         min={0}
         max={MAX_WEEKLY_HOURS}
-        step="any"
+        step={WEEKLY_HOURS_STEP}
         value={draft}
         onChange={(event) => setDraft(event.target.value)}
         onFocus={(event) => event.target.select()}

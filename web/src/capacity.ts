@@ -3,6 +3,9 @@ import type { CapacityResponse, Person } from './api'
 /** Upper bound for weekly hours; mirrors maxWeeklyHours in api/people.go. */
 export const MAX_WEEKLY_HOURS = 168
 
+/** Finest weekly hours accepted, a quarter of an hour; mirrors weeklyHoursStep in api/people.go. */
+export const WEEKLY_HOURS_STEP = 0.25
+
 export type CellStatus = 'over' | 'full' | 'under' | 'empty'
 
 /**
@@ -41,6 +44,8 @@ export function weeklyHoursError(input: string): string | null {
   const hours = Number(input)
   if (!Number.isFinite(hours)) return 'Enter the hours per week as a number.'
   if (hours < 0 || hours > MAX_WEEKLY_HOURS) return `Enter between 0 and ${MAX_WEEKLY_HOURS} hours.`
+  // Said up front rather than rounded on save, so the grid never shows a number nobody typed.
+  if (!Number.isInteger(hours / WEEKLY_HOURS_STEP)) return 'Use quarter hours, like 37.5 or 38.25.'
   return null
 }
 

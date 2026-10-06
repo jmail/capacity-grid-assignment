@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 
@@ -12,6 +13,11 @@ import (
 
 // maxWeeklyHours is the number of hours in a week; nothing above it can be real.
 const maxWeeklyHours = 168
+
+// weeklyHoursStep is the finest value accepted: a quarter of an hour, which
+// covers contracts like 37.5 or 38.75. Quarters are exact in binary floating
+// point, so the check below needs no tolerance.
+const weeklyHoursStep = 0.25
 
 type updatePersonRequest struct {
 	// A pointer so a missing field is rejected instead of saved as 0.
@@ -50,7 +56,7 @@ func (s *server) handleUpdatePerson(w http.ResponseWriter, r *http.Request) {
 	var p personResponse
 	err = s.db.QueryRow(r.Context(), `
 		UPDATE people
-		SET weekly_hours = round($1::float8::numeric, 2)
+		SET weekly_hours = $1::float8::numeric
 		WHERE id = $2
 		RETURNING id, name, weekly_hours::float8`,
 		*req.WeeklyHours, id,
@@ -73,6 +79,11 @@ func validateWeeklyHours(hours *float64) error {
 	}
 	if *hours < 0 || *hours > maxWeeklyHours {
 		return fmt.Errorf("weeklyHours must be between 0 and %d", maxWeeklyHours)
+	}
+	// Refused rather than rounded: saving a different number from the one that
+	// was sent would leave the manager looking at a value they never chose.
+	if steps := *hours / weeklyHoursStep; steps != math.Trunc(steps) {
+		return errors.New("weeklyHours must be in quarter hours, like 37.5 or 38.25")
 	}
 	return nil
 }

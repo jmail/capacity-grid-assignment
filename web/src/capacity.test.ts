@@ -55,10 +55,16 @@ describe('applyPersonUpdate', () => {
 })
 
 describe('weeklyHoursError', () => {
-  it('accepts whole and fractional hours within a week', () => {
+  it('accepts whole hours and quarter hours within a week', () => {
     expect(weeklyHoursError('0')).toBeNull()
     expect(weeklyHoursError('37.5')).toBeNull()
+    expect(weeklyHoursError('38.25')).toBeNull()
     expect(weeklyHoursError('168')).toBeNull()
+  })
+
+  it('refuses anything finer than a quarter hour instead of rounding it', () => {
+    expect(weeklyHoursError('41.12566476')).toMatch(/quarter hours/)
+    expect(weeklyHoursError('41.1')).toMatch(/quarter hours/)
   })
 
   it('rejects blanks, non-numbers and impossible values', () => {
