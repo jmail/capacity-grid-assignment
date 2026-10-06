@@ -103,14 +103,14 @@ export function CapacityGrid({ from, to }: Props) {
 }
 
 function WeekHeader({ week, current }: { week: string; current: boolean }) {
-  const { week: number, year } = isoWeek(week)
+  const { week: weekNumber, year } = isoWeek(week)
   return (
     <th scope="col" className={current ? 'week is-current' : 'week'}>
       <span className="week-dates">
         {formatDay(week)} – {formatDay(addDays(week, 6))}
       </span>
-      <span className="week-number" title={`ISO week ${number} of ${year}`}>
-        W{number}
+      <span className="week-number" title={`ISO week ${weekNumber} of ${year}`}>
+        W{weekNumber}
         {current && ' · this week'}
       </span>
     </th>
@@ -133,7 +133,10 @@ const PersonRow = memo(function PersonRow({ person, edit, onSave, onDismiss }: R
   return (
     <tr aria-busy={saving}>
       <th scope="row" className="person">
-        <span className="person-name">{person.name}</span>
+        {/* dir="auto": the roster has right-to-left names, and each should read in its own direction. */}
+        <span className="person-name" dir="auto">
+          {person.name}
+        </span>
         <WeeklyHoursEditor
           name={person.name}
           weeklyHours={weeklyHours}

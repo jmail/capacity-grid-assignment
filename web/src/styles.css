@@ -117,6 +117,9 @@ button {
 /* Grid */
 
 .grid-scroll {
+  /* Hug the table when the range is narrow, scroll when it is wide. */
+  width: fit-content;
+  max-width: 100%;
   max-height: calc(100vh - 15rem);
   min-height: 12rem;
   overflow: auto;
@@ -155,8 +158,11 @@ thead th {
   position: sticky;
   left: 0;
   z-index: 1;
-  min-width: 15rem;
-  max-width: 20rem;
+  /* A fixed width, so a save error opening in one row can't shift every column. */
+  width: 18rem;
+  min-width: 18rem;
+  max-width: 18rem;
+  box-sizing: border-box;
   background: Canvas;
   font-weight: normal;
 }
@@ -189,6 +195,9 @@ thead .person {
 .person-name {
   display: block;
   font-weight: 600;
+  /* Right-to-left names keep their own reading direction but line up with the rest of the column. */
+  text-align: left;
+  overflow-wrap: anywhere;
 }
 
 .over-badge {
