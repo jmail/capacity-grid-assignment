@@ -45,6 +45,9 @@ type personCapacity struct {
 // Assignment rows are summed as they are. The seed stores one logical assignment
 // as several rows with identical person, project and dates; they add up to the
 // daily total and must not be de-duplicated.
+//
+// Names are ordered with an ICU collation because the database default compares
+// bytes, which files "Inés" after "Ingrid" and every non-ASCII initial after "Z".
 const capacityQuery = `
 WITH weeks AS (
   SELECT gs::date AS week_start
@@ -65,7 +68,7 @@ SELECT p.id, p.name, p.weekly_hours::float8, COALESCE(al.hours, 0)::float8
 FROM people p
 CROSS JOIN weeks w
 LEFT JOIN allocations al ON al.person_id = p.id AND al.week_start = w.week_start
-ORDER BY p.name, p.id, w.week_start`
+ORDER BY p.name COLLATE "und-x-icu", p.id, w.week_start`
 
 // handleCapacity serves GET /api/capacity?from=YYYY-MM-DD&to=YYYY-MM-DD
 //

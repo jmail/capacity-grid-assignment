@@ -136,6 +136,22 @@ func TestCapacityAgainstSeed(t *testing.T) {
 	}
 }
 
+func TestCapacityOrdersNamesAlphabetically(t *testing.T) {
+	s := newTestServer(t)
+
+	_, resp := getCapacity(t, s, "from=2026-01-05&to=2026-01-11")
+	row := map[string]int{}
+	for i, p := range resp.People {
+		row[p.Name] = i
+	}
+
+	// The database's default collation compares bytes, which puts every "Inés"
+	// after every "Ingrid" because é sorts after g.
+	if row["Inés Álvarez"] > row["Ingrid Hagen"] {
+		t.Errorf("Inés Álvarez is on row %d, after Ingrid Hagen on row %d", row["Inés Álvarez"], row["Ingrid Hagen"])
+	}
+}
+
 func TestCapacityRejectsBadRanges(t *testing.T) {
 	s := newTestServer(t)
 
