@@ -117,8 +117,8 @@ func TestCapacityAgainstSeed(t *testing.T) {
 		allocated []float64
 		why       string
 	}{
-		{"Ana Ferreira", []float64{40, 0, 30}, "Mon-Sun at 8h/day is 40h, not 56h: weekends are not working days"},
-		{"Bo Lindqvist", []float64{0, 32, 8}, "a Fri-Mon assignment is split across two weeks and skips the weekend"},
+		{"Ana Ferreira", []float64{56, 0, 30}, "Mon-Sun at 8h/day is 56h: every day of an assignment counts, weekends too"},
+		{"Bo Lindqvist", []float64{0, 48, 8}, "a Fri-Mon assignment puts Fri, Sat and Sun in one week and Mon in the next"},
 		{"Cem Aydin", []float64{0, 4, 12}, "single-day and part-week assignments"},
 		{"Dee Okafor", []float64{0, 45, 40}, "overlapping projects add up"},
 		{"Eli Nakamura", []float64{0, 20, 0}, "someone with no capacity still has their allocation reported"},

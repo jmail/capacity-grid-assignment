@@ -37,10 +37,15 @@ type personCapacity struct {
 // weeks arrive together and in week order. People without assignments still get
 // a row per week.
 //
-// Working days are Monday to Friday. In a Monday-based week that is the
-// contiguous span [week_start, week_start + 4], so the number of working days an
-// assignment contributes is plain date arithmetic, and the join condition
-// already guarantees at least one.
+// Every day of an assignment counts, Saturdays and Sundays included. The schema
+// says nothing about who works which days, and people on shifts (retail,
+// support) do work weekends. Leaving weekends out would report someone on a
+// Wednesday-to-Sunday pattern as 24h when they are booked for 40h, and a missed
+// overload costs a manager more than a false one. The price: an assignment
+// written Monday to Sunday at 8h/day is 56h.
+//
+// A week is [week_start, week_start + 6], so the days an assignment contributes
+// are plain date arithmetic, and the join condition guarantees at least one.
 //
 // Assignment rows are summed as they are. The seed stores one logical assignment
 // as several rows with identical person, project and dates; they add up to the
@@ -57,10 +62,10 @@ allocations AS (
   SELECT a.person_id,
          w.week_start,
          sum(a.hours_per_day
-             * (least(a.end_date, w.week_start + 4) - greatest(a.start_date, w.week_start) + 1)) AS hours
+             * (least(a.end_date, w.week_start + 6) - greatest(a.start_date, w.week_start) + 1)) AS hours
   FROM weeks w
   JOIN assignments a
-    ON a.start_date <= w.week_start + 4
+    ON a.start_date <= w.week_start + 6
    AND a.end_date >= w.week_start
   GROUP BY a.person_id, w.week_start
 )

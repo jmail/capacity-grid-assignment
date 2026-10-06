@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CapacityResponse } from './api'
 import { CapacityGrid } from './CapacityGrid'
 
-// The first rows of the seed, as the API reports them for the starter range.
+// A small roster for three weeks: one person exactly at capacity, one over it, one with no capacity at all.
 function capacity(overrides?: Partial<CapacityResponse>): CapacityResponse {
   return {
     from: '2025-12-29',
