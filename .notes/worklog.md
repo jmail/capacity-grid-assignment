@@ -11,14 +11,14 @@ left unfinished. Append as you go; a line or two per entry is right.
 - `hours_per_day` holds 0.125 to 1.0. First read was "these are fractions of a day, multiply by 8". Wrong:
   every logical assignment is 15 rows, 14 of x and one of 2x, adding up to 16x (Ana: 14 × 0.5 + 1.0 = 8h/day).
   The query sums rows as they are. De-duplicating the "duplicates" would report 1.5h/day.
-- Assumption: working days are Monday to Friday. 46,665 rows end on a weekend, none start on one. Ana's
+- REVERSED LATER, see "Weekends count" below. First assumption: working days are Monday to Friday. 46,665 rows end on a weekend, none start on one. Ana's
   Mon–Sun assignment at 8h/day is 40h (exactly full) under this rule and 56h if weekends count. Seed-wide the
   95th-percentile week is exactly 40h and the maximum 45h; counting weekends would make 4,779 of 13,741
   allocated person-weeks over instead of 1,626. Weekend work, holidays and time off are not modelled.
 - Seen, left alone: every third week is almost empty (w/c 2025-12-22: 0 people allocated, 2026-01-12: 4,
   2026-02-02: 0). Checked by counting assignments directly; it is the seed's three-week cycle, not the query.
-- Seen, left alone: over-allocation is nearly all part-timers. Of the 1,626 over person-weeks one belongs to a
-  40h person (Dee, 45h); the rest are 20/24/32h people booked up to 40h.
+- Seen under the Mon–Fri rule (no longer how it is counted): over-allocation was nearly all part-timers. Of the
+  1,626 over person-weeks one belonged to a 40h person (Dee, 45h); the rest were 20/24/32h people booked up to 40h.
 - Eli Nakamura has 0 capacity and 20h allocated. Shown as "+20h over". Nothing in the grid is a percentage,
   so there is nothing to divide by zero.
 
@@ -104,6 +104,21 @@ left unfinished. Append as you go; a line or two per entry is right.
   the save path at risk for the last half hour. The range is capped at 26 weeks; the people axis is not capped.
 - The web container died once while files were being saved (Vite read `api.ts` mid-write: ENOENT on the bind
   mount). `docker compose up -d web` brought it back. Environment, not code.
+
+## Weekends count
+
+- Reversed the Mon–Fri assumption. It was defended with seed statistics (no assignment starts on a weekend; the
+  95th-percentile week came out at exactly 40h), and that was reading a rule into the data. The schema says
+  nothing about who works which days, and people on shifts (retail, first-line support) work weekends as a
+  matter of course. Dropping weekends reports a Wednesday-to-Sunday pattern as 24h when the person is booked
+  for 40h. A missed overload costs a manager more than a false one, so every day of an assignment now counts.
+- What it costs, on the untouched seed: 4,779 of 13,741 allocated person-weeks are over (was 1,626), including
+  2,494 of 8,800 for people on 40h, all the way up to 56h (seven days at 8h). In the starter range 146 of 500
+  people are over (was 41). Ana's Monday-to-Sunday assignment is 56h against 40h; Bo's Friday-to-Monday one
+  puts 48h in one week.
+- That may be over-reporting: "Monday to Sunday" could simply be how a one-week assignment was written. The
+  data cannot tell the two apart. What settles it is a working pattern per person, or a weekend flag on the
+  assignment, and a question to whoever owns the planning data.
 
 ## Verified
 
