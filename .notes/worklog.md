@@ -83,10 +83,32 @@ left unfinished. Append as you go; a line or two per entry is right.
   hours (0.25 covers contracts like 37.5 and 38.75); anything finer is refused in the editor and by the API
   instead of being rounded. This replaces "stored to two decimals" above.
 
+## Three questions raised while using it
+
+- Two managers with the grid open: the later save used to win silently, decided from a number that was no
+  longer true. This replaces "last write wins" above. A save now carries the value it is changing from, and the
+  API applies it only if that is still what is stored; otherwise 409 with the stored person. The grid then
+  shows the other manager's value and asks: save mine anyway, or keep theirs. No version column exists and the
+  schema is fixed, so the value itself is the precondition (40 → 32 → 40 by someone else goes unnoticed, which
+  is harmless here). A 409 that reports the very value being saved is treated as saved: it is our own earlier
+  attempt whose reply was lost. Checked against the running stack with a second writer.
+- Still missing for two managers: nothing pushes the change. The second one keeps seeing the old number until
+  they save, come back to the tab after 30s, or change the range.
+- Changing weekly hours changes past weeks too. That is wrong for a manager, and not fixable here: there is one
+  `weekly_hours` per person and the schema is fixed. It needs capacity with a start date, capacity per cell in
+  the response, and a separate, deliberate way to correct history. For now the editor says "Applies to every
+  week, past ones included" so the effect is at least not a surprise.
+- Pagination for a few thousand people: not built, and it is the largest gap. It is not one change but four
+  that have to land together: a cursor in the API (name collation, id), the over-allocated filter and count
+  moved to the server, loading further pages in the grid, and row virtualisation. Half of that would have put
+  the save path at risk for the last half hour. The range is capped at 26 weeks; the people axis is not capped.
+- The web container died once while files were being saved (Vite read `api.ts` mid-write: ENOENT on the bind
+  mount). `docker compose up -d web` brought it back. Environment, not code.
+
 ## Verified
 
-- Go tests against the seeded database inside the api container: `docker compose exec api go test ./...` (8).
-- `docker compose exec web npm test` (29), and `npm run tsc`.
+- Go tests against the seeded database inside the api container: `docker compose exec api go test ./...` (9).
+- `docker compose exec web npm test` (32), and `npm run tsc`.
 - Walked through in Chromium with screenshots: starter range, over-allocated filter, editing, saving, a save
   whose request was aborted, next week, 26 weeks (0.8s from changing the date to the last column on screen),
   an invalid range, dark scheme with the current week marked, right-to-left names.
@@ -99,5 +121,5 @@ left unfinished. Append as you go; a line or two per entry is right.
   after-save strategy, since one edit would no longer be one number.
 - A cache keyed by week. Moving one week refetches the whole window.
 - What a cell is made of: no breakdown by project.
-- Two managers editing the same person: the later save silently wins.
+- Live updates between managers. A conflicting save is caught (see above), but only at the moment of saving.
 - Not tested with a screen reader. No arrow-key navigation between cells. No end-to-end test in the repo.
