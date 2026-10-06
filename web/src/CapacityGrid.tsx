@@ -51,7 +51,8 @@ export function CapacityGrid({ from, to }: Props) {
   return (
     <section className="capacity" aria-label="Capacity by person and week">
       <div className="toolbar">
-        <p className="summary">
+        {/* While the next range loads this still counts the previous one, so it is dimmed with the grid. */}
+        <p className={isPlaceholderData ? 'summary is-stale' : 'summary'}>
           <strong>{overCount}</strong> of {data.people.length} people over-allocated in this range
         </p>
         <label className="filter">

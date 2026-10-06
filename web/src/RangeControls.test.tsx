@@ -28,10 +28,10 @@ describe('RangeControls', () => {
     const onChange = vi.fn()
     render(<RangeControls range={WIDE} onChange={onChange} />)
 
-    fireEvent.click(screen.getByRole('button', { name: /Previous week/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Move the range one week earlier' }))
     expect(onChange).toHaveBeenLastCalledWith({ from: '2025-12-29', to: '2026-04-26' })
 
-    fireEvent.click(screen.getByRole('button', { name: /Next week/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Move the range one week later' }))
     expect(onChange).toHaveBeenLastCalledWith({ from: '2026-01-12', to: '2026-05-10' })
   })
 

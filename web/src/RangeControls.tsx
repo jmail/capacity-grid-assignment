@@ -24,37 +24,48 @@ export function RangeControls({ range, onChange }: Props) {
 
   return (
     <div className="range-controls">
-      <div className="range-nav">
-        <button type="button" onClick={() => onChange(shiftRange(range, -1))}>
-          ← Previous week
+      {/* The steppers sit on either side of the dates they move, so they read as "shift this range". */}
+      <div className="range-stepper" role="group" aria-label="Date range">
+        <button
+          type="button"
+          onClick={() => onChange(shiftRange(range, -1))}
+          aria-label="Move the range one week earlier"
+          title="Move the range one week earlier"
+        >
+          ← 1 week
         </button>
-        {/* Exactly the current week, not the current span moved to today: the label has to be literal. */}
-        <button type="button" onClick={() => onChange(wholeWeeks(today(), today()))}>
-          This week
-        </button>
-        <button type="button" onClick={() => onChange(shiftRange(range, 1))}>
-          Next week →
+        <label>
+          From
+          <input
+            type="date"
+            value={draft.from}
+            onChange={(event) => edit({ ...draft, from: event.target.value })}
+            aria-invalid={problem !== null}
+          />
+        </label>
+        <label>
+          To
+          <input
+            type="date"
+            value={draft.to}
+            onChange={(event) => edit({ ...draft, to: event.target.value })}
+            aria-invalid={problem !== null}
+          />
+        </label>
+        <button
+          type="button"
+          onClick={() => onChange(shiftRange(range, 1))}
+          aria-label="Move the range one week later"
+          title="Move the range one week later"
+        >
+          1 week →
         </button>
       </div>
 
-      <label>
-        From
-        <input
-          type="date"
-          value={draft.from}
-          onChange={(event) => edit({ ...draft, from: event.target.value })}
-          aria-invalid={problem !== null}
-        />
-      </label>
-      <label>
-        To
-        <input
-          type="date"
-          value={draft.to}
-          onChange={(event) => edit({ ...draft, to: event.target.value })}
-          aria-invalid={problem !== null}
-        />
-      </label>
+      {/* Apart from the steppers: it replaces the range with exactly the current week rather than moving it. */}
+      <button type="button" className="this-week" onClick={() => onChange(wholeWeeks(today(), today()))}>
+        This week
+      </button>
 
       {problem ? (
         <p className="field-error" role="alert">

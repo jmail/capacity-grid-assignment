@@ -46,9 +46,15 @@ button {
   margin-bottom: 1rem;
 }
 
-.range-nav {
+.range-stepper {
   display: flex;
-  gap: 0.25rem;
+  align-items: end;
+  gap: 0.5rem;
+}
+
+/* Set apart from the steppers: it replaces the range instead of moving it. */
+.this-week {
+  margin-left: 1rem;
 }
 
 .range-controls label {
@@ -128,7 +134,7 @@ button {
 }
 
 /* The previous range stays visible while the next one loads, but must not look current. */
-.grid-scroll.is-stale {
+.is-stale {
   opacity: 0.5;
 }
 
