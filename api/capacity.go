@@ -53,10 +53,16 @@ type personCapacity struct {
 //
 // Names are ordered with an ICU collation because the database default compares
 // bytes, which files "Inés" after "Ingrid" and every non-ASCII initial after "Z".
+//
+// The weeks come from an integer series on purpose. generate_series over dates
+// with an interval is planned as 1,000 rows whatever the range, which pushes the
+// plan's cost past the JIT threshold and adds over 100ms of compilation to every
+// request. The integer form is estimated exactly, so a three-week range runs in
+// a few milliseconds.
 const capacityQuery = `
 WITH weeks AS (
-  SELECT gs::date AS week_start
-  FROM generate_series($1::date, $2::date, interval '7 days') AS gs
+  SELECT $1::date + 7 * n AS week_start
+  FROM generate_series(0, ($2::date - $1::date) / 7) AS n
 ),
 allocations AS (
   SELECT a.person_id,

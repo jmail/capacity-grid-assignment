@@ -50,7 +50,9 @@ type conflictResponse struct {
 // silently, the later one deciding from a number that was no longer true. The
 // schema has no version column, so the value itself is the precondition.
 func (s *server) handleUpdatePerson(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
+	// 32 bits, to match people.id: a larger number is not an id that could exist,
+	// and would otherwise fail at the database and come back as a 500.
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 32)
 	if err != nil || id <= 0 {
 		writeError(w, http.StatusBadRequest, "person id must be a positive integer")
 		return

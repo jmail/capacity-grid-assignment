@@ -128,6 +128,7 @@ func TestUpdatePersonRejectsBadInput(t *testing.T) {
 		{"unknown person", "999999", `{"weeklyHours": 40, "expectedWeeklyHours": 40}`, http.StatusNotFound},
 		{"no expected value, so the edit could overwrite blindly", "4", `{"weeklyHours": 40}`, http.StatusBadRequest},
 		{"non-numeric id", "abc", `{"weeklyHours": 40}`, http.StatusBadRequest},
+		{"id too large for the id column", "99999999999", `{"weeklyHours": 40, "expectedWeeklyHours": 40}`, http.StatusBadRequest},
 		{"negative hours", "4", `{"weeklyHours": -1}`, http.StatusBadRequest},
 		{"more hours than a week has", "4", `{"weeklyHours": 169}`, http.StatusBadRequest},
 		{"finer than a quarter hour", "4", `{"weeklyHours": 41.12566476}`, http.StatusBadRequest},
