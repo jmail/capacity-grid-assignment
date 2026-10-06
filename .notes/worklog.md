@@ -78,10 +78,15 @@ left unfinished. Append as you go; a line or two per entry is right.
   test was wrong, not the app: it asserted a number the product lets managers change. It now pins allocations
   only, and the PATCH test restores whatever value it found rather than assuming the seed's.
 
+- Weekly hours were accepted at any precision and silently rounded to two decimals on save: typing 41.12566476
+  stored 41.13, a number nobody chose. Found by typing it into the running grid. Weekly hours are now quarter
+  hours (0.25 covers contracts like 37.5 and 38.75); anything finer is refused in the editor and by the API
+  instead of being rounded. This replaces "stored to two decimals" above.
+
 ## Verified
 
-- Go tests against the seeded database inside the api container: `docker compose exec api go test ./...` (7).
-- `docker compose exec web npm test` (28), and `npm run tsc`.
+- Go tests against the seeded database inside the api container: `docker compose exec api go test ./...` (8).
+- `docker compose exec web npm test` (29), and `npm run tsc`.
 - Walked through in Chromium with screenshots: starter range, over-allocated filter, editing, saving, a save
   whose request was aborted, next week, 26 weeks (0.8s from changing the date to the last column on screen),
   an invalid range, dark scheme with the current week marked, right-to-left names.
