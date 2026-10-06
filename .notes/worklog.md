@@ -62,6 +62,9 @@ left unfinished. Append as you go; a line or two per entry is right.
 - "This week" kept whatever span was on screen and only moved its start, so with four months showing it still
   loaded four months. Caught by clicking through the app by hand, not by a test. It now shows the current week
   only, with a test that failed first.
+- The range controls were a row of three look-alike buttons (previous, this week, next) beside the dates. Using
+  it showed the problem: nothing said that two of them move the range and one replaces it. The week steppers
+  now sit on either side of the dates they move and keep the span; "This week" stands apart.
 
 ## Verified
 
